@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>EcoSort Live</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <svg viewBox="0 0 24 24" width="28" height="28" aria-hidden="true"><path fill="currentColor" d="M17 8C8 10 5.9 16.17 3.82 21.34l1.89.66.95-2.3c.48.17.98.3 1.34.3C19 20 22 3 22 3c-1 2-8 2.25-13 3.25S2 11.5 2 13.5s1.75 3.75 1.75 3.75C7 8 17 8 17 8z"/></svg>
+      <h1>EcoSort <span>Live</span></h1>
+    </div>
+    <div class="status"><span id="dot" class="dot"></span><span id="statusText">Camera off</span></div>
+  </header>
+
+  <main>
+    <section class="stage">
+      <div class="video-wrap" id="videoWrap">
+        <video id="video" playsinline muted></video>
+        <img id="still" alt="" hidden>
+        <div class="scanbox" id="scanbox"><i></i><i></i><i></i><i></i></div>
+        <div class="placeholder" id="placeholder">
+          <p>Start the camera or upload an image</p>
+        </div>
+        <div class="overlay-label" id="overlayLabel" hidden></div>
+      </div>
+
+      <div class="controls">
+        <button id="toggleCam" class="primary">Start camera</button>
+        <label class="btn">Upload image<input type="file" id="upload" accept="image/*" hidden></label>
+        <select id="cameraSelect" title="Camera"></select>
+        <label class="check"><input type="checkbox" id="mirror" checked> Mirror</label>
+      </div>
+    </section>
+
+    <aside class="panel">
+      <div class="result card" id="resultCard">
+        <div class="ring" id="ring"><svg viewBox="0 0 120 120"><circle cx="60" cy="60" r="52" class="track"/><circle cx="60" cy="60" r="52" class="fill" id="ringFill"/></svg><span id="ringText">-</span></div>
+        <div>
+          <div class="eyebrow">Prediction</div>
+          <div class="label" id="label">Waiting...</div>
+          <div class="hint" id="hint">Hold one item inside the frame</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Confidence</div>
+        <div id="bars"></div>
+      </div>
+
+      <div class="card stats">
+        <div><span id="fps">0</span><small>FPS</small></div>
+        <div><span id="latency">0</span><small>model ms</small></div>
+        <div><span id="device">-</span><small>device</small></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Settings</div>
+        <label class="field">Model
+          <select id="modelSelect"></select>
+        </label>
+        <div class="model-meta" id="modelMeta"></div>
+        <label class="field">Uncertain below <b id="thrVal">60%</b>
+          <input type="range" id="threshold" min="0" max="95" value="60">
+        </label>
+        <label class="field">Smoothing <b id="smoothVal">0.5</b>
+          <input type="range" id="smooth" min="0" max="90" value="50">
+        </label>
+      </div>
+    </aside>
+  </main>
+
+  <canvas id="canvas" hidden></canvas>
+  <script src="/static/app.js"></script>
+</body>
+</html>

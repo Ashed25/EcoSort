@@ -218,3 +218,9 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# EcoSort
+dataset/
+*.log
+*_last.pth
+.vscode/

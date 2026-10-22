@@ -1,0 +1,12 @@
+# Install the CUDA build of torch first for GPU training, e.g.:
+#   pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121
+torch>=2.2
+torchvision>=0.17
+timm>=1.0
+numpy>=2.0
+pillow
+scikit-learn
+matplotlib
+imagehash
+fastapi
+uvicorn[standard]
