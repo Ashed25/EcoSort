@@ -15,8 +15,12 @@ const SEND_SIZE = 320;
 
 let stream = null, running = false, smoothed = null, models = [], frames = [];
 
+// Browser mode: on static hosting (GitHub Pages) the page loads onnxruntime-web and runs the model itself.
+const BROWSER = !!window.ort;
+let meta, session;
+
 async function loadModels() {
-  const res = await fetch("/api/models").then((r) => r.json());
+  const res = BROWSER ? await loadBrowserModel() : await fetch("/api/models").then((r) => r.json());
   models = res.models;
   $("device").textContent = res.device.toUpperCase();
   $("modelSelect").innerHTML = models
@@ -77,7 +81,32 @@ function grabSquare(source, w, h) {
   return new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.9));
 }
 
+async function loadBrowserModel() {
+  meta = await fetch("meta.json").then((r) => r.json());
+  $("statusText").textContent = "Loading model (~55 MB, first visit only)…";
+  session = await ort.InferenceSession.create("model.onnx");
+  $("statusText").textContent = stream ? "Live" : "Ready";
+  return { default: meta.info.name, device: "browser", models: [meta.info] };
+}
+
+// Same preprocessing as the server: resize to img_size*1.14, centre-crop img_size, normalize.
+const small = document.createElement("canvas"), sctx = small.getContext("2d", { willReadFrequently: true });
+async function classifyInBrowser() {
+  const n = meta.img_size, crop = (SEND_SIZE * n) / Math.floor(n * 1.14), off = (SEND_SIZE - crop) / 2;
+  small.width = small.height = n;
+  sctx.drawImage(canvas, off, off, crop, crop, 0, 0, n, n);
+  const px = sctx.getImageData(0, 0, n, n).data, x = new Float32Array(3 * n * n);
+  for (let i = 0; i < n * n; i++)
+    for (let c = 0; c < 3; c++) x[c * n * n + i] = (px[i * 4 + c] / 255 - meta.mean[c]) / meta.std[c];
+  const t0 = performance.now();
+  const out = await session.run({ input: new ort.Tensor("float32", x, [1, 3, n, n]) });
+  const logits = Array.from(out.logits.data, (v, i) => v / meta.temperature + meta.bias[i]);
+  const max = Math.max(...logits), e = logits.map((v) => Math.exp(v - max)), sum = e.reduce((a, b) => a + b);
+  return { probs: Object.fromEntries(meta.classes.map((c, i) => [c, e[i] / sum])), latency_ms: performance.now() - t0 };
+}
+
 async function classify(blob) {
+  if (BROWSER) return modelReady.then(classifyInBrowser); // grabSquare already drew the frame into `canvas`
   const res = await fetch(`/api/predict?model=${encodeURIComponent($("modelSelect").value)}`, {
     method: "POST",
     headers: { "Content-Type": "image/jpeg" },
@@ -173,4 +202,5 @@ $("upload").onchange = async (e) => {
 };
 
 $("videoWrap").classList.add("mirror");
-loadModels().catch((e) => ($("statusText").textContent = `Server error: ${e.message}`));
+const modelReady = loadModels();
+modelReady.catch((e) => ($("statusText").textContent = `${BROWSER ? "Model" : "Server"} error: ${e.message}`));

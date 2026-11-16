@@ -1,0 +1,47 @@
+name: Deploy browser demo to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install torch==2.5.1 --index-url https://download.pytorch.org/whl/cpu
+      - run: pip install timm==1.0.11 onnx==1.17.0 onnxruntime==1.20.1 numpy pillow
+      - run: python scripts/export_onnx.py site
+      # Same page as the local server app, with paths made relative and onnxruntime-web added so the model runs in the browser.
+      - run: |
+          cp app/static/app.js app/static/style.css site/
+          sed -e 's#/static/##g' \
+              -e 's#<script src="app.js"></script>#<script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.1/dist/ort.min.js"></script>\n  <script src="app.js"></script>#' \
+              app/static/index.html > site/index.html
+          grep -q onnxruntime-web site/index.html
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
