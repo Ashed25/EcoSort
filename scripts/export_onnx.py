@@ -21,7 +21,7 @@ os.makedirs(out, exist_ok=True)
 model, ckpt = load_checkpoint(os.path.join(ROOT, "models", "convnext_tiny.pt"))
 n = ckpt["img_size"]
 path = os.path.join(out, "model.onnx")
-torch.onnx.export(model, torch.randn(1, 3, n, n), path, input_names=["input"], output_names=["logits"], opset_version=17)
+torch.onnx.export(model, torch.randn(1, 3, n, n), path, input_names=["input"], output_names=["logits"], opset_version=17, dynamo=False)
 
 # The checkpoint stores fp16 weights, so ship them as fp16 (half the download) and cast to fp32 when the model loads.
 m = onnx.load(path)
@@ -56,4 +56,4 @@ if os.path.exists(metrics_path):
 with open(os.path.join(out, "meta.json"), "w") as f:
     json.dump({"classes": ckpt["classes"], "img_size": n, "mean": list(ckpt["mean"]), "std": list(ckpt["std"]),
                "temperature": float(cal["temperature"]), "bias": [float(b) for b in cal["bias"]], "info": info}, f)
-print(f"exported {path} ({os.path.getsize(path) / 1e6:.1f} MB), max diff vs torch {np.abs(ref - got).max():.2e}")
+print(f"torch {torch.__version__}: exported {path} ({os.path.getsize(path) / 1e6:.1f} MB), max diff vs torch {np.abs(ref - got).max():.2e}")
